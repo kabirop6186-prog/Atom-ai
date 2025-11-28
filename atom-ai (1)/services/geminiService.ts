@@ -3,9 +3,15 @@ import { Attachment, WebSource, MapSource } from "../types";
 import { GEMINI_MODEL_TEXT, GEMINI_MODEL_TTS } from "../constants";
 
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  // Priority: 
+  // 1. Vercel/GitHub Secret (process.env.API_KEY)
+  // 2. Hardcoded in vite.config.ts (process.env.API_KEY logic handles this)
+  // 3. User entered manually in UI (localStorage)
+  const apiKey = process.env.API_KEY || localStorage.getItem('ATOM_API_KEY');
+  
   if (!apiKey) {
-    throw new Error("API Key is missing. Please check your environment variables.");
+    // We throw a specific error that the UI can catch to show the setup screen
+    throw new Error("API Key is missing");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -115,8 +121,8 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: 
 }
 
 export const speakText = async (text: string, voiceName: string = 'Kore') => {
-  const ai = getClient();
   try {
+    const ai = getClient();
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL_TTS,
       contents: [{ parts: [{ text }] }],

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, PanelLeft } from 'lucide-react';
+import { Menu, PanelLeft, Key, ArrowRight, ShieldCheck } from 'lucide-react';
 
 import Sidebar from './components/Sidebar';
 import ChatMessage from './components/ChatMessage';
@@ -33,6 +33,7 @@ function App() {
     voice: 'Zephyr'
   });
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [manualKey, setManualKey] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,9 +44,14 @@ function App() {
   useEffect(() => {
     if (window.innerWidth < 768) setIsSidebarOpen(false);
     
-    // Check for API Key presence
-    if (!process.env.API_KEY) {
+    // Check for API Key presence (Environment OR LocalStorage)
+    const envKey = process.env.API_KEY;
+    const localKey = localStorage.getItem('ATOM_API_KEY');
+    
+    if (!envKey && !localKey) {
       setApiKeyMissing(true);
+    } else {
+      setApiKeyMissing(false);
     }
 
     if (navigator.geolocation) {
@@ -89,7 +95,7 @@ function App() {
     } catch (error: any) {
       console.error(error);
       const errorText = error?.message?.includes('API Key') 
-        ? "API Key is missing. Please add it in your Vercel Project Settings." 
+        ? "API Key is missing or invalid. Please check your settings." 
         : "I encountered an error connecting to my neural core. Please try again.";
         
       setMessages(prev => [...prev, {
@@ -132,6 +138,16 @@ function App() {
     }
   };
 
+  const saveManualKey = () => {
+    if (manualKey.trim().length > 10) {
+      localStorage.setItem('ATOM_API_KEY', manualKey.trim());
+      setApiKeyMissing(false);
+      window.location.reload(); // Reload to initialize client with new key
+    } else {
+      alert("Please enter a valid API Key (starts with AIza...)");
+    }
+  };
+
   const getThemeColorClass = () => {
     switch(settings.themeColor) {
       case 'purple': return 'text-purple-500';
@@ -153,25 +169,50 @@ function App() {
   if (apiKeyMissing) {
     return (
       <div className="flex h-screen items-center justify-center bg-dark-bg text-white p-6">
-        <div className="max-w-md text-center space-y-4 border border-red-500/30 p-8 rounded-2xl bg-dark-surface shadow-2xl">
-          <h1 className="text-2xl font-bold text-red-400">Setup Required</h1>
-          <p className="text-gray-300">Atom AI needs a brain (API Key) to function.</p>
-          <div className="bg-black/30 p-4 rounded text-left text-sm text-gray-400 font-mono border border-white/5">
-            1. Go to Vercel Dashboard<br/>
-            2. Settings &gt; Environment Variables<br/>
-            3. Add key: <span className="text-white">API_KEY</span><br/>
-            4. Add value: (Your Google API Key)
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => window.location.reload()} className="flex-1 py-2 bg-atom-600 rounded-lg hover:bg-atom-500 transition-colors font-semibold">
-              I added it, Refresh
-            </button>
-             <button 
-              onClick={() => setIsInstallGuideOpen(true)} 
-              className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm"
-            >
-              Where do I get a Key?
-            </button>
+        <div className="max-w-md w-full text-center space-y-6 border border-atom-500/30 p-8 rounded-3xl bg-dark-surface shadow-[0_0_50px_rgba(14,165,233,0.1)] relative overflow-hidden">
+          
+          {/* Futuristic Background Element */}
+          <div className="absolute -top-20 -left-20 w-40 h-40 bg-atom-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"></div>
+
+          <div className="relative z-10">
+            <div className="w-16 h-16 bg-atom-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-atom-500/30">
+              <Key className="w-8 h-8 text-atom-400" />
+            </div>
+            
+            <h1 className="text-3xl font-bold text-white tracking-tight">Initialize Atom AI</h1>
+            <p className="text-gray-400 mt-2 text-sm leading-relaxed">
+              To activate the neural core, please enter your Google Gemini API Key below.
+            </p>
+
+            <div className="mt-8 space-y-4">
+              <div className="relative">
+                <input 
+                  type="password" 
+                  value={manualKey}
+                  onChange={(e) => setManualKey(e.target.value)}
+                  placeholder="Paste Key here (AIza...)" 
+                  className="w-full bg-black/50 border border-gray-700 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-atom-500 focus:outline-none focus:ring-1 focus:ring-atom-500 transition-all font-mono text-sm"
+                />
+                <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
+              </div>
+
+              <button 
+                onClick={saveManualKey} 
+                className="w-full py-4 bg-atom-600 hover:bg-atom-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-atom-500/25 flex items-center justify-center gap-2 group"
+              >
+                Activate System <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <button 
+                onClick={() => setIsInstallGuideOpen(true)} 
+                className="text-sm text-gray-500 hover:text-atom-400 transition-colors"
+              >
+                I don't have a key (Get one for free)
+              </button>
+            </div>
           </div>
         </div>
         <InstallGuide isOpen={isInstallGuideOpen} onClose={() => setIsInstallGuideOpen(false)} />
